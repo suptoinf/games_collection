@@ -1,0 +1,201 @@
+"""
+游戏合集主入口 - 扫雷 & 数独
+Windows 11 支持：置顶、鼠标离开透明、点击穿透
+"""
+
+import tkinter as tk
+import ctypes
+from ctypes import wintypes
+
+# Windows API 常量
+WS_EX_TRANSPARENT = 0x20
+WS_EX_LAYERED = 0x80000
+GWL_EXSTYLE = -20
+
+# Windows API 函数
+user32 = ctypes.windll.user32
+
+
+def set_click_through(hwnd: int, enabled: bool):
+    """启用/禁用窗口点击穿透（鼠标事件穿透到下层窗口）"""
+    if not hwnd:
+        return
+    ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+    if enabled:
+        ex_style |= WS_EX_TRANSPARENT
+    else:
+        ex_style &= ~WS_EX_TRANSPARENT
+    user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style)
+
+
+class GameCollection:
+    """游戏合集主窗口"""
+
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("🎮 游戏合集")
+        self.root.geometry("420x520+1500+800")  # 默认右下角位置
+
+        # ── 窗口置顶 ──
+        self.root.attributes('-topmost', True)
+        self.root.attributes('-alpha', 1.0)
+
+        # 延迟获取 HWND（窗口映射后才有效）
+        self.hwnd = None
+        self.root.after(100, self._init_hwnd)
+
+        # ── 鼠标悬停透明（可配置，默认关闭）──
+        self._transparent_alpha = 0.0      # 完全透明
+        self._opaque_alpha = 1.0
+        self._transparent_enabled = False   # 默认关闭
+        self._is_transparent = False        # 当前透明状态
+
+        # ── UI ──
+        self._setup_ui()
+
+        # ── 注册游戏 ──
+        from minesweeper import Minesweeper
+        from sudoku import Sudoku
+        self._game_classes = {
+            'minesweeper': Minesweeper,
+            'sudoku': Sudoku,
+        }
+        self._game_instances: dict[str, tk.Frame] = {}
+        self._current_game: str | None = None
+
+        # 启动鼠标位置轮询（代替 Enter/Leave 事件）
+        self._start_polling()
+
+        # 启动默认游戏
+        self.root.after(200, lambda: self.show_game('minesweeper'))
+
+    def _init_hwnd(self):
+        """获取窗口句柄（Windows HWND）"""
+        self.root.update_idletasks()
+        try:
+            # tkinter winfo_id() 返回的是 Canvas/Frame 句柄，需 GetParent 获取顶级窗口
+            self.hwnd = user32.GetParent(self.root.winfo_id())
+        except Exception:
+            self.hwnd = None
+
+    def _setup_ui(self):
+        """构建主 UI"""
+        # ── 顶部工具栏 ──
+        toolbar = tk.Frame(self.root, bg='#2d2d2d', height=42)
+        toolbar.pack(fill=tk.X, side=tk.TOP)
+        toolbar.pack_propagate(False)
+
+        btn_style = {'bg': '#3a3a3a', 'fg': 'white', 'relief': tk.FLAT,
+                     'font': ('Segoe UI', 10), 'padx': 12, 'pady': 2,
+                     'cursor': 'hand2', 'activebackground': '#4a4a4a'}
+
+        tk.Label(toolbar, text="🎮 游戏合集",
+                 fg='#e0e0e0', bg='#2d2d2d',
+                 font=('Segoe UI', 12, 'bold')).pack(side=tk.LEFT, padx=12)
+
+        # 透明模式开关（默认关闭）
+        self._btn_transparent = tk.Button(
+            toolbar, text='👁 透明关', **btn_style,
+            command=self._toggle_transparent)
+        self._btn_transparent.pack(side=tk.RIGHT, padx=4, pady=6)
+
+        self._btn_mine = tk.Button(toolbar, text="💣 扫雷", **btn_style,
+                                   command=lambda: self.show_game('minesweeper'))
+        self._btn_mine.pack(side=tk.LEFT, padx=4, pady=6)
+
+        self._btn_sudo = tk.Button(toolbar, text="🧩 数独", **btn_style,
+                                   command=lambda: self.show_game('sudoku'))
+        self._btn_sudo.pack(side=tk.LEFT, padx=4, pady=6)
+
+        # ── 游戏容器 ──
+        self._container = tk.Frame(self.root, bg='#1a1a1a')
+        self._container.pack(fill=tk.BOTH, expand=True)
+
+    def show_game(self, name: str):
+        """切换到指定游戏"""
+        if self._current_game == name:
+            return
+
+        # 销毁当前游戏
+        if self._current_game and self._current_game in self._game_instances:
+            self._game_instances[self._current_game].destroy()
+            del self._game_instances[self._current_game]
+
+        self._current_game = name
+
+        # 创建新游戏实例
+        cls = self._game_classes[name]
+        instance = cls(self._container)
+        instance.pack(fill=tk.BOTH, expand=True)
+        self._game_instances[name] = instance
+
+        # 高亮当前按钮
+        self._btn_mine.config(bg='#3a3a3a' if name != 'minesweeper' else '#5a7a5a')
+        self._btn_sudo.config(bg='#3a3a3a' if name != 'sudoku' else '#5a7a5a')
+
+    # ── 鼠标透明控制 ──
+
+    def _toggle_transparent(self):
+        """开关透明模式"""
+        self._transparent_enabled = not self._transparent_enabled
+        if self._transparent_enabled:
+            self._btn_transparent.config(text='👁 透明开', bg='#5a5a3a')
+        else:
+            # 关闭透明 → 立刻恢复
+            self._btn_transparent.config(text='👁 透明关', bg='#3a3a3a')
+            self._restore_opaque()
+
+    def _restore_opaque(self):
+        """恢复不透明 + 取消点击穿透"""
+        self.root.attributes('-alpha', self._opaque_alpha)
+        set_click_through(self.hwnd, False)
+        self._is_transparent = False
+
+    def _make_transparent(self):
+        """变为完全透明 + 启用点击穿透"""
+        self.root.attributes('-alpha', self._transparent_alpha)
+        set_click_through(self.hwnd, True)
+        self._is_transparent = True
+
+    def _start_polling(self):
+        """启动鼠标位置轮询（替代 Enter/Leave 事件，更可靠）"""
+        self._poll_mouse()
+
+    def _poll_mouse(self):
+        """每隔 500ms 检查鼠标是否在窗口内"""
+        if not self._transparent_enabled:
+            # 透明关闭时确保窗口可见
+            if self._is_transparent:
+                self._restore_opaque()
+            self.root.after(500, self._poll_mouse)
+            return
+
+        try:
+            px = self.root.winfo_pointerx()
+            py = self.root.winfo_pointery()
+            wx = self.root.winfo_rootx()
+            wy = self.root.winfo_rooty()
+            ww = self.root.winfo_width()
+            wh = self.root.winfo_height()
+        except Exception:
+            self.root.after(500, self._poll_mouse)
+            return
+
+        inside = (wx <= px <= wx + ww and wy <= py <= wy + wh)
+
+        if inside and self._is_transparent:
+            # 鼠标回到窗口 → 恢复
+            self._restore_opaque()
+        elif not inside and not self._is_transparent:
+            # 鼠标离开窗口 → 透明
+            self._make_transparent()
+
+        self.root.after(500, self._poll_mouse)
+
+    def run(self):
+        self.root.mainloop()
+
+
+if __name__ == '__main__':
+    app = GameCollection()
+    app.run()
