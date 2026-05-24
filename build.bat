@@ -19,10 +19,10 @@ echo [OK] Python:
 python --version
 
 :: Check / Install PyInstaller
-pip show pyinstaller >nul 2>&1
+python -m pip show pyinstaller >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [..] Installing PyInstaller...
-    pip install pyinstaller
+    python -m pip install pyinstaller
     if %ERRORLEVEL% NEQ 0 (
         echo [ERROR] PyInstaller install failed
         pause
@@ -36,7 +36,7 @@ echo.
 echo [..] Building executable (this may take a while)...
 echo.
 
-pyinstaller build.spec
+python -m PyInstaller build.spec
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed - see errors above
     pause
