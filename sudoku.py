@@ -7,10 +7,9 @@ import copy
 import random
 from typing import Optional
 
-# 预置数独题库 (0 表示空格)
-_PUZZLES = [
-    # 简单
-    [
+# 预置数独题库（按难度分组，0 表示空格）
+_PUZZLES: dict[str, list[list[int]]] = {
+    '简单': [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
         [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -21,8 +20,7 @@ _PUZZLES = [
         [0, 0, 0, 4, 1, 9, 0, 0, 5],
         [0, 0, 0, 0, 8, 0, 0, 7, 9],
     ],
-    # 中等
-    [
+    '中等': [
         [0, 0, 0, 2, 6, 0, 7, 0, 1],
         [6, 8, 0, 0, 7, 0, 0, 9, 0],
         [1, 9, 0, 0, 0, 4, 5, 0, 0],
@@ -33,8 +31,7 @@ _PUZZLES = [
         [0, 4, 0, 0, 5, 0, 0, 3, 6],
         [7, 0, 3, 0, 1, 8, 0, 0, 0],
     ],
-    # 困难
-    [
+    '困难': [
         [0, 2, 0, 6, 0, 8, 0, 0, 0],
         [5, 8, 0, 0, 0, 9, 7, 0, 0],
         [0, 0, 0, 0, 4, 0, 0, 0, 0],
@@ -45,7 +42,9 @@ _PUZZLES = [
         [0, 0, 9, 8, 0, 0, 0, 3, 6],
         [0, 0, 0, 3, 0, 6, 0, 9, 0],
     ],
-]
+}
+
+_DIFFICULTIES = ['简单', '中等', '困难']
 
 
 class Sudoku(tk.Frame):
@@ -60,7 +59,7 @@ class Sudoku(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg='#1a1a1a')
 
-        self._puzzle_index = 0
+        self._difficulty = '简单'
         self._board: list[list[int]] = []      # 当前完整棋盘
         self._solution: list[list[int]] = []    # 完整解（目前没用，可做提示）
         self._given: list[list[bool]] = []      # True = 预置不可改
@@ -69,7 +68,7 @@ class Sudoku(tk.Frame):
         self._game_won = False
 
         self._setup_ui()
-        self._load_puzzle(0)
+        self._load_puzzle('简单')
 
     # ── UI ──
 
@@ -85,9 +84,14 @@ class Sudoku(tk.Frame):
                      'font': ('Segoe UI', 10), 'padx': 10, 'pady': 2,
                      'cursor': 'hand2', 'activebackground': '#4a4a4a'}
 
-        new_btn = tk.Button(header, text='🔄 新题目', **btn_style,
-                            command=self._next_puzzle)
-        new_btn.pack(side=tk.RIGHT, padx=2)
+        # 难度选择按钮
+        self._diff_buttons: dict[str, tk.Button] = {}
+        for diff in _DIFFICULTIES:
+            btn = tk.Button(
+                header, text=diff, **btn_style,
+                command=lambda d=diff: self._load_puzzle(d))
+            btn.pack(side=tk.LEFT, padx=2)
+            self._diff_buttons[diff] = btn
 
         hint_btn = tk.Button(header, text='💡 提示', **btn_style,
                              command=self._give_hint)
@@ -123,9 +127,10 @@ class Sudoku(tk.Frame):
         self._canvas.bind('<Key>', self._on_key)  # 键盘输入
         self._canvas.focus_set()
 
-    def _load_puzzle(self, index: int):
-        """加载一道题目"""
-        puzzle = copy.deepcopy(_PUZZLES[index % len(_PUZZLES)])
+    def _load_puzzle(self, difficulty: str):
+        """加载指定难度的题目"""
+        puzzle = copy.deepcopy(_PUZZLES[difficulty])
+        self._difficulty = difficulty
         self._board = puzzle
         self._solution = self._solve(copy.deepcopy(puzzle))
         self._given = [[puzzle[r][c] != 0 for c in range(self.SIZE)]
@@ -133,11 +138,12 @@ class Sudoku(tk.Frame):
         self._selected = None
         self._conflicts.clear()
         self._game_won = False
-        self._draw()
 
-    def _next_puzzle(self):
-        self._puzzle_index = (self._puzzle_index + 1) % len(_PUZZLES)
-        self._load_puzzle(self._puzzle_index)
+        # 高亮当前难度按钮
+        for diff, btn in self._diff_buttons.items():
+            btn.config(bg='#5a7a5a' if diff == difficulty else '#3a3a3a')
+
+        self._draw()
 
     def _give_hint(self):
         """在选中格子填入正确答案"""
