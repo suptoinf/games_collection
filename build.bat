@@ -1,57 +1,54 @@
 @echo off
-chcp 65001 >nul
-title 打包游戏合集
+title Game Collection Builder
 
 echo ====================================
-echo   🎮 游戏合集 - Windows 打包工具
+echo   Game Collection - Windows Builder
 echo ====================================
 echo.
 
-:: 检查 Python
-where python >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ 未找到 Python，请先安装 https://www.python.org/downloads/
-    echo    安装时请勾选 "Add Python to PATH"
+:: Check Python
+python --version >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Python not found. Install from https://www.python.org/downloads/
+    echo        Make sure to check "Add Python to PATH"
     pause
     exit /b 1
 )
 
-echo ✅ Python: 
+echo [OK] Python:
 python --version
 
-:: 检查 / 安装 PyInstaller
+:: Check / Install PyInstaller
 pip show pyinstaller >nul 2>&1
-if %errorlevel% neq 0 (
-    echo 📦 正在安装 PyInstaller...
+if %ERRORLEVEL% NEQ 0 (
+    echo [..] Installing PyInstaller...
     pip install pyinstaller
-    if %errorlevel% neq 0 (
-        echo ❌ PyInstaller 安装失败
+    if %ERRORLEVEL% NEQ 0 (
+        echo [ERROR] PyInstaller install failed
         pause
         exit /b 1
     )
 ) else (
-    echo ✅ PyInstaller 已安装
+    echo [OK] PyInstaller ready
 )
 
 echo.
-echo 🔨 正在打包，请稍候...
+echo [..] Building executable (this may take a while)...
 echo.
 
-:: 执行打包
 pyinstaller build.spec
-
-if %errorlevel% neq 0 (
-    echo ❌ 打包失败，请检查上面的错误信息
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Build failed - see errors above
     pause
     exit /b 1
 )
 
 echo.
-echo ✅ 打包成功！
+echo ========== SUCCESS ==========
 echo.
-echo 📁 可执行文件位置：
-echo    %CD%\dist\游戏合集.exe
+echo Output:
+echo    %CD%\dist\GameCollection.exe
 echo.
-echo 🚀 双击即可运行，无需安装 Python
+echo Double-click to run, no Python needed.
 echo.
 pause

@@ -34,7 +34,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='游戏合集',
+    name='GameCollection',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
