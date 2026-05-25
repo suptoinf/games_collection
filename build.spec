@@ -13,6 +13,7 @@ a = Analysis(
         'tkinter',
         'minesweeper',
         'sudoku',
+        'snake',
     ],
     hookspath=[],
     hooksconfig={},

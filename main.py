@@ -63,9 +63,11 @@ class GameCollection:
         # ── 注册游戏 ──
         from minesweeper import Minesweeper
         from sudoku import Sudoku
+        from snake import Snake
         self._game_classes = {
             'minesweeper': Minesweeper,
             'sudoku': Sudoku,
+            'snake': Snake,
         }
         self._game_instances: dict[str, tk.Frame] = {}
         self._current_game: str | None = None
@@ -109,7 +111,7 @@ class GameCollection:
         toolbar.pack_propagate(False)
 
         btn_style = {'bg': '#3a3a3a', 'fg': 'white', 'relief': tk.FLAT,
-                     'font': ('Segoe UI', 10), 'padx': 12, 'pady': 2,
+                     'font': ('Segoe UI', 10), 'padx': 10, 'pady': 2,
                      'cursor': 'hand2', 'activebackground': '#4a4a4a'}
 
         tk.Label(toolbar, text="🎮 游戏合集",
@@ -129,6 +131,10 @@ class GameCollection:
         self._btn_sudo = tk.Button(toolbar, text="🧩 数独", **btn_style,
                                    command=lambda: self.show_game('sudoku'))
         self._btn_sudo.pack(side=tk.LEFT, padx=4, pady=6)
+
+        self._btn_snake = tk.Button(toolbar, text="🐍 贪吃蛇", **btn_style,
+                                    command=lambda: self.show_game('snake'))
+        self._btn_snake.pack(side=tk.LEFT, padx=4, pady=6)
 
         # ── 游戏容器 ──
         self._container = tk.Frame(self.root, bg='#1a1a1a')
@@ -155,6 +161,7 @@ class GameCollection:
         # 高亮当前按钮
         self._btn_mine.config(bg='#3a3a3a' if name != 'minesweeper' else '#5a7a5a')
         self._btn_sudo.config(bg='#3a3a3a' if name != 'sudoku' else '#5a7a5a')
+        self._btn_snake.config(bg='#3a3a3a' if name != 'snake' else '#5a7a5a')
 
     # ── 鼠标透明控制 ──
 
