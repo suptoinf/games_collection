@@ -64,19 +64,19 @@ class GameCollection:
         from minesweeper import Minesweeper
         from sudoku import Sudoku
         from snake import Snake
-        self._game_classes = {
-            'minesweeper': Minesweeper,
-            'sudoku': Sudoku,
-            'snake': Snake,
+        # (emoji, 中文名, class)
+        self._game_classes: dict[str, tuple[str, str, type]] = {
+            'minesweeper': ('💣', '扫雷', Minesweeper),
+            'sudoku': ('🧩', '数独', Sudoku),
+            'snake': ('🐍', '贪吃蛇', Snake),
         }
-        self._game_instances: dict[str, tk.Frame] = {}
         self._current_game: str | None = None
 
         # 启动鼠标位置轮询（代替 Enter/Leave 事件）
         self._start_polling()
 
-        # 启动默认游戏
-        self.root.after(200, lambda: self.show_game('minesweeper'))
+        # 启动 → 显示主菜单
+        self.root.after(200, self._show_menu)
 
     def _init_hwnd(self):
         """获取窗口句柄（Windows HWND）"""
@@ -104,64 +104,74 @@ class GameCollection:
             self.root.geometry(f"{win_w}x{win_h}+{pad}+{pad}")
 
     def _setup_ui(self):
-        """构建主 UI"""
-        # ── 顶部工具栏 ──
-        toolbar = tk.Frame(self.root, bg='#2d2d2d', height=42)
-        toolbar.pack(fill=tk.X, side=tk.TOP)
-        toolbar.pack_propagate(False)
+        """构建主 UI（内容区 + 底部状态栏）"""
+        # ── 内容区（菜单或游戏）──
+        self._content = tk.Frame(self.root, bg='#1a1a1a')
+        self._content.pack(fill=tk.BOTH, expand=True)
 
-        btn_style = {'bg': '#3a3a3a', 'fg': 'white', 'relief': tk.FLAT,
-                     'font': ('Segoe UI', 10), 'padx': 10, 'pady': 2,
-                     'cursor': 'hand2', 'activebackground': '#4a4a4a'}
+        # ── 底部状态栏（始终可见）──
+        bottom = tk.Frame(self.root, bg='#2d2d2d', height=36)
+        bottom.pack(fill=tk.X, side=tk.BOTTOM)
+        bottom.pack_propagate(False)
 
-        tk.Label(toolbar, text="🎮 游戏合集",
-                 fg='#e0e0e0', bg='#2d2d2d',
-                 font=('Segoe UI', 12, 'bold')).pack(side=tk.LEFT, padx=12)
+        tk.Label(bottom, text='🎮 游戏合集',
+                 fg='#777', bg='#2d2d2d',
+                 font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=10)
 
-        # 透明模式开关（默认关闭）
+        btn_s = {'bg': '#3a3a3a', 'fg': 'white', 'relief': tk.FLAT,
+                 'font': ('Segoe UI', 10), 'padx': 10, 'pady': 2,
+                 'cursor': 'hand2', 'activebackground': '#4a4a4a'}
+
         self._btn_transparent = tk.Button(
-            toolbar, text='👁 透明关', **btn_style,
+            bottom, text='👁 透明关', **btn_s,
             command=self._toggle_transparent)
-        self._btn_transparent.pack(side=tk.RIGHT, padx=4, pady=6)
+        self._btn_transparent.pack(side=tk.RIGHT, padx=4, pady=4)
 
-        self._btn_mine = tk.Button(toolbar, text="💣 扫雷", **btn_style,
-                                   command=lambda: self.show_game('minesweeper'))
-        self._btn_mine.pack(side=tk.LEFT, padx=4, pady=6)
+    # ── 页面导航 ──
 
-        self._btn_sudo = tk.Button(toolbar, text="🧩 数独", **btn_style,
-                                   command=lambda: self.show_game('sudoku'))
-        self._btn_sudo.pack(side=tk.LEFT, padx=4, pady=6)
+    def _show_menu(self):
+        """显示主菜单（游戏入口卡片）"""
+        for w in self._content.winfo_children():
+            w.destroy()
+        self._current_game = None
 
-        self._btn_snake = tk.Button(toolbar, text="🐍 贪吃蛇", **btn_style,
-                                    command=lambda: self.show_game('snake'))
-        self._btn_snake.pack(side=tk.LEFT, padx=4, pady=6)
+        frame = tk.Frame(self._content, bg='#1a1a1a')
+        frame.place(relx=0.5, rely=0.45, anchor=tk.CENTER)
 
-        # ── 游戏容器 ──
-        self._container = tk.Frame(self.root, bg='#1a1a1a')
-        self._container.pack(fill=tk.BOTH, expand=True)
+        tk.Label(frame, text='🎮', fg='#e0e0e0', bg='#1a1a1a',
+                 font=('Segoe UI', 40)).pack()
+        tk.Label(frame, text='游戏合集', fg='#e0e0e0', bg='#1a1a1a',
+                 font=('Segoe UI', 20, 'bold')).pack(pady=(2, 24))
 
-    def show_game(self, name: str):
-        """切换到指定游戏"""
-        if self._current_game == name:
-            return
+        cards = tk.Frame(frame, bg='#1a1a1a')
+        cards.pack()
 
-        # 销毁当前游戏
-        if self._current_game and self._current_game in self._game_instances:
-            self._game_instances[self._current_game].destroy()
-            del self._game_instances[self._current_game]
+        for name, (emoji, title, _) in self._game_classes.items():
+            btn = tk.Button(
+                cards,
+                text=f'{emoji}\n{title}',
+                font=('Segoe UI', 16),
+                bg='#2a2a2a', fg='#e0e0e0',
+                relief=tk.RAISED, bd=2,
+                width=7, height=3,
+                cursor='hand2',
+                activebackground='#3d3d3d',
+                command=lambda n=name: self._navigate_to_game(n))
+            btn.pack(side=tk.LEFT, padx=8)
 
-        self._current_game = name
+        tk.Label(frame, text='选择一个游戏开始',
+                 fg='#555', bg='#1a1a1a',
+                 font=('Segoe UI', 10)).pack(pady=(20, 0))
 
-        # 创建新游戏实例
-        cls = self._game_classes[name]
-        instance = cls(self._container)
+    def _navigate_to_game(self, name: str):
+        """进入指定游戏"""
+        for w in self._content.winfo_children():
+            w.destroy()
+
+        _, _, cls = self._game_classes[name]
+        instance = cls(self._content, back_callback=self._show_menu)
         instance.pack(fill=tk.BOTH, expand=True)
-        self._game_instances[name] = instance
-
-        # 高亮当前按钮
-        self._btn_mine.config(bg='#3a3a3a' if name != 'minesweeper' else '#5a7a5a')
-        self._btn_sudo.config(bg='#3a3a3a' if name != 'sudoku' else '#5a7a5a')
-        self._btn_snake.config(bg='#3a3a3a' if name != 'snake' else '#5a7a5a')
+        self._current_game = name
 
     # ── 鼠标透明控制 ──
 

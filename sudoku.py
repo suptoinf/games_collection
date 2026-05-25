@@ -34,9 +34,10 @@ class Sudoku(tk.Frame):
     FONT = ('Segoe UI', 18, 'bold')
     FONT_SMALL = ('Segoe UI', 10)
 
-    def __init__(self, parent):
+    def __init__(self, parent, back_callback=None):
         super().__init__(parent, bg='#1a1a1a')
 
+        self._back_callback = back_callback
         self._difficulty = '简单'
         self._board: list[list[int]] = []      # 当前完整棋盘
         self._solution: list[list[int]] = []    # 完整解（目前没用，可做提示）
@@ -53,6 +54,14 @@ class Sudoku(tk.Frame):
     def _setup_ui(self):
         header = tk.Frame(self, bg='#1a1a1a')
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
+
+        if self._back_callback:
+            back_btn = tk.Button(header, text='← 返回',
+                                 font=('Segoe UI', 10),
+                                 bg='#3a3a3a', fg='#aaa', relief=tk.FLAT,
+                                 cursor='hand2', activebackground='#4a4a4a',
+                                 command=self._back_callback)
+            back_btn.pack(side=tk.LEFT, padx=(0, 8))
 
         tk.Label(header, text='🧩 数独',
                  fg='#e0e0e0', bg='#1a1a1a',

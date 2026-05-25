@@ -22,8 +22,9 @@ class Minesweeper(tk.Frame):
     MINES = 10
     CELL_SIZE = 42
 
-    def __init__(self, parent):
+    def __init__(self, parent, back_callback=None):
         super().__init__(parent, bg='#1a1a1a')
+        self._back_callback = back_callback
         self._board: list[list[int]] = []
         self._revealed: list[list[bool]] = []
         self._flagged: list[list[bool]] = []
@@ -38,9 +39,17 @@ class Minesweeper(tk.Frame):
     # ── UI 构建 ──
 
     def _setup_ui(self):
-        # 顶栏：雷计数 + 状态表情 + 重置按钮
+        # 顶栏：返回 + 雷计数 + 状态表情 + 重置按钮
         header = tk.Frame(self, bg='#1a1a1a')
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
+
+        if self._back_callback:
+            back_btn = tk.Button(header, text='← 返回',
+                                 font=('Segoe UI', 10),
+                                 bg='#3a3a3a', fg='#aaa', relief=tk.FLAT,
+                                 cursor='hand2', activebackground='#4a4a4a',
+                                 command=self._back_callback)
+            back_btn.pack(side=tk.LEFT, padx=(0, 8))
 
         self._mine_label = tk.Label(header, text='💣 10',
                                     fg='#e0e0e0', bg='#1a1a1a',

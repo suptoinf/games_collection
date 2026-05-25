@@ -24,9 +24,10 @@ class Snake(tk.Frame):
     CELL_SIZE = 24
     TICK_MS = 180  # 毫秒/帧
 
-    def __init__(self, parent):
+    def __init__(self, parent, back_callback=None):
         super().__init__(parent, bg='#1a1a1a')
 
+        self._back_callback = back_callback
         self._snake: list[tuple[int, int]] = []   # 蛇身 [(r,c), ...]
         self._food: Optional[tuple[int, int]] = None
         self._direction = 'Right'
@@ -44,6 +45,14 @@ class Snake(tk.Frame):
     def _setup_ui(self):
         header = tk.Frame(self, bg='#1a1a1a')
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
+
+        if self._back_callback:
+            back_btn = tk.Button(header, text='← 返回',
+                                 font=('Segoe UI', 10),
+                                 bg='#3a3a3a', fg='#aaa', relief=tk.FLAT,
+                                 cursor='hand2', activebackground='#4a4a4a',
+                                 command=self._back_callback)
+            back_btn.pack(side=tk.LEFT, padx=(0, 8))
 
         tk.Label(header, text='🐍 贪吃蛇',
                  fg='#e0e0e0', bg='#1a1a1a',
