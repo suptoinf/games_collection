@@ -16,6 +16,13 @@ GWL_EXSTYLE = -20
 user32 = ctypes.windll.user32
 
 
+# 启用高 DPI 感知（解决 200% 缩放下屏幕尺寸不准确的问题）
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    pass  # 非 Windows 或旧版本系统忽略
+
+
 def set_click_through(hwnd: int, enabled: bool):
     """启用/禁用窗口点击穿透（鼠标事件穿透到下层窗口）"""
     if not hwnd:
@@ -34,15 +41,15 @@ class GameCollection:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("🎮 游戏合集")
-        self.root.geometry("420x520+1500+800")  # 默认右下角位置
 
         # ── 窗口置顶 ──
         self.root.attributes('-topmost', True)
         self.root.attributes('-alpha', 1.0)
 
-        # 延迟获取 HWND（窗口映射后才有效）
+        # 延迟初始化：HWND 获取 + 屏幕自适应定位
         self.hwnd = None
         self.root.after(100, self._init_hwnd)
+        self.root.after(150, self._position_bottom_right)
 
         # ── 鼠标悬停透明（可配置，默认关闭）──
         self._transparent_alpha = 0.0      # 完全透明
@@ -77,6 +84,22 @@ class GameCollection:
             self.hwnd = user32.GetParent(self.root.winfo_id())
         except Exception:
             self.hwnd = None
+
+    def _position_bottom_right(self):
+        """将窗口定位在屏幕右下角（自适应高 DPI）"""
+        self.root.update_idletasks()
+        win_w = 420
+        win_h = 520
+        pad = 30  # 距右下角边距
+        try:
+            sw = self.root.winfo_screenwidth()
+            sh = self.root.winfo_screenheight()
+            x = max(0, sw - win_w - pad)
+            y = max(0, sh - win_h - pad)
+            self.root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+        except Exception:
+            # 保底位置
+            self.root.geometry(f"{win_w}x{win_h}+{pad}+{pad}")
 
     def _setup_ui(self):
         """构建主 UI"""
