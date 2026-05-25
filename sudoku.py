@@ -7,43 +7,21 @@ import copy
 import random
 from typing import Optional
 
-# 预置数独题库（按难度分组，0 表示空格）
-_PUZZLES: dict[str, list[list[int]]] = {
-    '简单': [
-        [5, 3, 0, 0, 7, 0, 0, 0, 0],
-        [6, 0, 0, 1, 9, 5, 0, 0, 0],
-        [0, 9, 8, 0, 0, 0, 0, 6, 0],
-        [8, 0, 0, 0, 6, 0, 0, 0, 3],
-        [4, 0, 0, 8, 0, 3, 0, 0, 1],
-        [7, 0, 0, 0, 2, 0, 0, 0, 6],
-        [0, 6, 0, 0, 0, 0, 2, 8, 0],
-        [0, 0, 0, 4, 1, 9, 0, 0, 5],
-        [0, 0, 0, 0, 8, 0, 0, 7, 9],
-    ],
-    '中等': [
-        [0, 0, 0, 2, 6, 0, 7, 0, 1],
-        [6, 8, 0, 0, 7, 0, 0, 9, 0],
-        [1, 9, 0, 0, 0, 4, 5, 0, 0],
-        [8, 2, 0, 1, 0, 0, 0, 4, 0],
-        [0, 0, 4, 6, 0, 2, 9, 0, 0],
-        [0, 5, 0, 0, 0, 3, 0, 2, 8],
-        [0, 0, 9, 3, 0, 0, 0, 7, 4],
-        [0, 4, 0, 0, 5, 0, 0, 3, 6],
-        [7, 0, 3, 0, 1, 8, 0, 0, 0],
-    ],
-    '困难': [
-        [0, 2, 0, 6, 0, 8, 0, 0, 0],
-        [5, 8, 0, 0, 0, 9, 7, 0, 0],
-        [0, 0, 0, 0, 4, 0, 0, 0, 0],
-        [3, 7, 0, 0, 0, 0, 5, 0, 0],
-        [6, 0, 0, 0, 0, 0, 0, 0, 4],
-        [0, 0, 8, 0, 0, 0, 0, 1, 3],
-        [0, 0, 0, 0, 2, 0, 0, 0, 0],
-        [0, 0, 9, 8, 0, 0, 0, 3, 6],
-        [0, 0, 0, 3, 0, 6, 0, 9, 0],
-    ],
-}
+# 一次有效解（通过行/列交换、数字置换、转置等变换即可生成海量不同题目）
+_SEED = [
+    [5, 3, 4, 6, 7, 8, 9, 1, 2],
+    [6, 7, 2, 1, 9, 5, 3, 4, 8],
+    [1, 9, 8, 3, 4, 2, 5, 6, 7],
+    [8, 5, 9, 7, 6, 1, 4, 2, 3],
+    [4, 2, 6, 8, 5, 3, 7, 9, 1],
+    [7, 1, 3, 9, 2, 4, 8, 5, 6],
+    [9, 6, 1, 5, 3, 7, 2, 8, 4],
+    [2, 8, 7, 4, 1, 9, 6, 3, 5],
+    [3, 4, 5, 2, 8, 6, 1, 7, 9],
+]
 
+# 每级难度挖空数量
+_REMOVE_COUNT = {'简单': 36, '中等': 46, '困难': 54}
 _DIFFICULTIES = ['简单', '中等', '困难']
 
 
@@ -127,12 +105,79 @@ class Sudoku(tk.Frame):
         self._canvas.bind('<Key>', self._on_key)  # 键盘输入
         self._canvas.focus_set()
 
+    # ── 随机题目生成 ──
+
+    def _shuffle_digits(self, grid):
+        """随机置换数字 1-9"""
+        nums = list(range(1, 10))
+        random.shuffle(nums)
+        mapping = {i + 1: nums[i] for i in range(9)}
+        return [[mapping[grid[r][c]] for c in range(self.SIZE)]
+                for r in range(self.SIZE)]
+
+    def _transpose(self, grid):
+        return [[grid[c][r] for c in range(self.SIZE)] for r in range(self.SIZE)]
+
+    def _swap_rows(self, grid, band, a, b):
+        """在同一宫（三行一组）内交换两行"""
+        r1, r2 = band * 3 + a, band * 3 + b
+        grid[r1], grid[r2] = grid[r2], grid[r1]
+        return grid
+
+    def _swap_cols(self, grid, stack, a, b):
+        """在同一宫（三列一组）内交换两列"""
+        for row in grid:
+            c1, c2 = stack * 3 + a, stack * 3 + b
+            row[c1], row[c2] = row[c2], row[c1]
+        return grid
+
+    def _swap_bands(self, grid, a, b):
+        """交换两个宫（三行组）"""
+        grid[a*3:a*3+3], grid[b*3:b*3+3] = grid[b*3:b*3+3], grid[a*3:a*3+3]
+        return grid
+
+    def _swap_stacks(self, grid, a, b):
+        """交换两个宫（三列组）"""
+        for row in grid:
+            c1_start, c2_start = a * 3, b * 3
+            row[c1_start:c1_start+3], row[c2_start:c2_start+3] = (
+                row[c2_start:c2_start+3], row[c1_start:c1_start+3])
+        return grid
+
+    def _generate_puzzle(self, difficulty: str) -> tuple:
+        """生成一个随机数独题目 (board, solution)"""
+        # 从种子开始，应用随机变换
+        grid = copy.deepcopy(_SEED)
+        for _ in range(random.randint(15, 25)):
+            op = random.choice([
+                lambda g: self._shuffle_digits(g),
+                lambda g: self._transpose(g) if random.random() < 0.5 else g,
+                lambda g: self._swap_rows(g, random.randrange(3),
+                            *random.sample(range(3), 2)),
+                lambda g: self._swap_cols(g, random.randrange(3),
+                            *random.sample(range(3), 2)),
+                lambda g: self._swap_bands(g, *random.sample(range(3), 2)),
+                lambda g: self._swap_stacks(g, *random.sample(range(3), 2)),
+            ])
+            grid = op(grid)
+
+        solution = copy.deepcopy(grid)
+
+        # 根据难度挖空
+        remove = _REMOVE_COUNT[difficulty]
+        positions = [(r, c) for r in range(self.SIZE) for c in range(self.SIZE)]
+        random.shuffle(positions)
+        for r, c in positions[:remove]:
+            grid[r][c] = 0
+
+        return grid, solution
+
     def _load_puzzle(self, difficulty: str):
-        """加载指定难度的题目"""
-        puzzle = copy.deepcopy(_PUZZLES[difficulty])
+        """加载指定难度的随机题目"""
         self._difficulty = difficulty
+        puzzle, solution = self._generate_puzzle(difficulty)
         self._board = puzzle
-        self._solution = self._solve(copy.deepcopy(puzzle))
+        self._solution = solution
         self._given = [[puzzle[r][c] != 0 for c in range(self.SIZE)]
                        for r in range(self.SIZE)]
         self._selected = None
