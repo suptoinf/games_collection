@@ -21,7 +21,7 @@ class Snake(tk.Frame):
 
     COLS = 20
     ROWS = 16
-    CELL_SIZE = 24
+    CELL_SIZE = 20
     TICK_MS = 180  # 毫秒/帧
 
     def __init__(self, parent, back_callback=None):
@@ -211,8 +211,9 @@ class Snake(tk.Frame):
         if self._food:
             fx = self._food[1] * self.CELL_SIZE + self.CELL_SIZE // 2
             fy = self._food[0] * self.CELL_SIZE + self.CELL_SIZE // 2
+            r = max(4, self.CELL_SIZE // 3)
             self._canvas.create_oval(
-                fx - 7, fy - 7, fx + 7, fy + 7,
+                fx - r, fy - r, fx + r, fy + r,
                 fill='#ff5252', outline='')
 
         # 蛇身
