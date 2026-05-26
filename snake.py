@@ -8,10 +8,10 @@ from typing import Optional
 
 # 方向常量
 _DIR = {
-    'Up': (0, -1),
-    'Down': (0, 1),
-    'Left': (-1, 0),
-    'Right': (1, 0),
+    'Up': (-1, 0),     # 行减小 = 向上
+    'Down': (1, 0),    # 行增大 = 向下
+    'Left': (0, -1),   # 列减小 = 向左
+    'Right': (0, 1),   # 列增大 = 向右
 }
 _REVERSE = {'Up': 'Down', 'Down': 'Up', 'Left': 'Right', 'Right': 'Left'}
 
