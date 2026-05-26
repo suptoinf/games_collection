@@ -79,7 +79,7 @@ class Snake(tk.Frame):
         cw = self.COLS * self.CELL_SIZE
         ch = self.ROWS * self.CELL_SIZE
         self._canvas = tk.Canvas(self, width=cw, height=ch,
-                                 bg='#0f0f0f', highlightthickness=0)
+                                 bg='#2a2a2a', highlightthickness=0)
         self._canvas.pack(pady=(4, 10))
         self._canvas.focus_set()
 
