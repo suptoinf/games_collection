@@ -87,12 +87,22 @@ class GameCollection:
         except Exception:
             self.hwnd = None
 
+    def _get_dpi_scale(self):
+        """获取 DPI 缩放比例（100%=1.0, 200%=2.0）"""
+        try:
+            return self.root.winfo_fpixels('1i') / 96.0
+        except Exception:
+            return 1.0
+
     def _position_bottom_right(self):
-        """将窗口定位在屏幕右下角（自适应高 DPI）"""
+        """将窗口定位在屏幕右下角（自适应 DPI 缩放）"""
         self.root.update_idletasks()
-        win_w = 420
-        win_h = 520
-        pad = 30  # 距右下角边距
+        scale = self._get_dpi_scale()
+        base_w = 420
+        base_h = 520
+        win_w = int(base_w * scale)
+        win_h = int(base_h * scale)
+        pad = int(30 * scale)  # 距右下角边距
         try:
             sw = self.root.winfo_screenwidth()
             sh = self.root.winfo_screenheight()
