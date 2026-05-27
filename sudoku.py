@@ -108,7 +108,7 @@ class Sudoku(tk.Frame):
         clear_btn.pack(side=tk.LEFT, padx=2)
 
         # 画布
-        self.cell_size = int(self.cell_size * self._scale)
+        self.cell_size = int(type(self).CELL_SIZE * self._scale)
         self.grid_size = self.SIZE * self.cell_size
         self._canvas = tk.Canvas(self, width=self.grid_size, height=self.grid_size,
                                  bg='#2a2a2a', highlightthickness=0)

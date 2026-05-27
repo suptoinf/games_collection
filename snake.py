@@ -77,7 +77,7 @@ class Snake(tk.Frame):
         self._restart_btn.pack(side=tk.RIGHT, padx=4)
 
         # 画布
-        self.cell_size = int(self.cell_size * self._scale)
+        self.cell_size = int(type(self).CELL_SIZE * self._scale)
         cw = self.COLS * self.cell_size
         ch = self.ROWS * self.cell_size
         self._canvas = tk.Canvas(self, width=cw, height=ch,
@@ -171,7 +171,6 @@ class Snake(tk.Frame):
 
         # 显示结束画面
         self._draw()
-        self.cell_size = int(self.cell_size * self._scale)
         cw = self.COLS * self.cell_size
         ch = self.ROWS * self.cell_size
         self._canvas.create_rectangle(0, 0, cw, ch,
