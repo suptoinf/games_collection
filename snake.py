@@ -24,10 +24,11 @@ class Snake(tk.Frame):
     CELL_SIZE = 20
     TICK_MS = 180  # 毫秒/帧
 
-    def __init__(self, parent, back_callback=None):
+    def __init__(self, parent, back_callback=None, scale=1.0):
         super().__init__(parent, bg='#1a1a1a')
 
         self._back_callback = back_callback
+        self._scale = scale
         self._snake: list[tuple[int, int]] = []   # 蛇身 [(r,c), ...]
         self._food: Optional[tuple[int, int]] = None
         self._direction = 'Right'
@@ -76,8 +77,9 @@ class Snake(tk.Frame):
         self._restart_btn.pack(side=tk.RIGHT, padx=4)
 
         # 画布
-        cw = self.COLS * self.CELL_SIZE
-        ch = self.ROWS * self.CELL_SIZE
+        self.cell_size = int(self.cell_size * self._scale)
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
         self._canvas = tk.Canvas(self, width=cw, height=ch,
                                  bg='#2a2a2a', highlightthickness=0)
         self._canvas.pack(pady=(4, 10))
@@ -169,8 +171,9 @@ class Snake(tk.Frame):
 
         # 显示结束画面
         self._draw()
-        cw = self.COLS * self.CELL_SIZE
-        ch = self.ROWS * self.CELL_SIZE
+        self.cell_size = int(self.cell_size * self._scale)
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
         self._canvas.create_rectangle(0, 0, cw, ch,
                                        fill='#1a0a0a', stipple='gray25',
                                        outline='')
@@ -200,28 +203,28 @@ class Snake(tk.Frame):
         self._canvas.delete('all')
 
         # 网格线（淡灰）
-        for x in range(0, self.COLS * self.CELL_SIZE + 1, self.CELL_SIZE):
-            self._canvas.create_line(x, 0, x, self.ROWS * self.CELL_SIZE,
+        for x in range(0, self.COLS * self.cell_size + 1, self.cell_size):
+            self._canvas.create_line(x, 0, x, self.ROWS * self.cell_size,
                                      fill='#1a1a1a', width=1)
-        for y in range(0, self.ROWS * self.CELL_SIZE + 1, self.CELL_SIZE):
-            self._canvas.create_line(0, y, self.COLS * self.CELL_SIZE, y,
+        for y in range(0, self.ROWS * self.cell_size + 1, self.cell_size):
+            self._canvas.create_line(0, y, self.COLS * self.cell_size, y,
                                      fill='#1a1a1a', width=1)
 
         # 食物
         if self._food:
-            fx = self._food[1] * self.CELL_SIZE + self.CELL_SIZE // 2
-            fy = self._food[0] * self.CELL_SIZE + self.CELL_SIZE // 2
-            r = max(4, self.CELL_SIZE // 3)
+            fx = self._food[1] * self.cell_size + self.cell_size // 2
+            fy = self._food[0] * self.cell_size + self.cell_size // 2
+            r = max(4, self.cell_size // 3)
             self._canvas.create_oval(
                 fx - r, fy - r, fx + r, fy + r,
                 fill='#ff5252', outline='')
 
         # 蛇身
         for i, (r, c) in enumerate(self._snake):
-            x1 = c * self.CELL_SIZE + 2
-            y1 = r * self.CELL_SIZE + 2
-            x2 = x1 + self.CELL_SIZE - 4
-            y2 = y1 + self.CELL_SIZE - 4
+            x1 = c * self.cell_size + 2
+            y1 = r * self.cell_size + 2
+            x2 = x1 + self.cell_size - 4
+            y2 = y1 + self.cell_size - 4
             # 头部渐变亮色
             color = '#69f0ae' if i == 0 else '#4caf50'
             self._canvas.create_rectangle(
@@ -230,8 +233,8 @@ class Snake(tk.Frame):
         # 蛇眼（头部）
         if self._snake:
             hr, hc = self._snake[0]
-            cx = hc * self.CELL_SIZE + self.CELL_SIZE // 2
-            cy = hr * self.CELL_SIZE + self.CELL_SIZE // 2
+            cx = hc * self.cell_size + self.cell_size // 2
+            cy = hr * self.cell_size + self.cell_size // 2
             dr, dc = _DIR[self._direction]
             # 两只眼睛
             for side in (-1, 1):

@@ -97,7 +97,8 @@ class GameCollection:
     def _position_bottom_right(self):
         """将窗口定位在屏幕右下角（自适应 DPI 缩放）"""
         self.root.update_idletasks()
-        scale = self._get_dpi_scale()
+        self._dpi_scale = self._get_dpi_scale()
+        scale = self._dpi_scale
         base_w = 420
         base_h = 520
         win_w = int(base_w * scale)
@@ -179,7 +180,7 @@ class GameCollection:
             w.destroy()
 
         _, _, cls = self._game_classes[name]
-        instance = cls(self._content, back_callback=self._show_menu)
+        instance = cls(self._content, back_callback=self._show_menu, scale=getattr(self, "_dpi_scale", 1.0))
         instance.pack(fill=tk.BOTH, expand=True)
         self._current_game = name
 

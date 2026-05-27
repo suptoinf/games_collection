@@ -34,10 +34,11 @@ class Sudoku(tk.Frame):
     FONT = ('Segoe UI', 18, 'bold')
     FONT_SMALL = ('Segoe UI', 10)
 
-    def __init__(self, parent, back_callback=None):
+    def __init__(self, parent, back_callback=None, scale=1.0):
         super().__init__(parent, bg='#1a1a1a')
 
         self._back_callback = back_callback
+        self._scale = scale
         self._difficulty = '简单'
         self._board: list[list[int]] = []      # 当前完整棋盘
         self._solution: list[list[int]] = []    # 完整解（目前没用，可做提示）
@@ -107,7 +108,9 @@ class Sudoku(tk.Frame):
         clear_btn.pack(side=tk.LEFT, padx=2)
 
         # 画布
-        self._canvas = tk.Canvas(self, width=self.GRID_SIZE, height=self.GRID_SIZE,
+        self.cell_size = int(self.cell_size * self._scale)
+        self.grid_size = self.SIZE * self.cell_size
+        self._canvas = tk.Canvas(self, width=self.grid_size, height=self.grid_size,
                                  bg='#2a2a2a', highlightthickness=0)
         self._canvas.pack(pady=(4, 10))
         self._canvas.bind('<Button-1>', self._on_click)
@@ -215,8 +218,8 @@ class Sudoku(tk.Frame):
 
     def _on_click(self, event):
         self._canvas.focus_set()
-        c = event.x // self.CELL_SIZE
-        r = event.y // self.CELL_SIZE
+        c = event.x // self.cell_size
+        r = event.y // self.cell_size
         if 0 <= r < self.SIZE and 0 <= c < self.SIZE:
             self._selected = (r, c)
             self._draw()
@@ -356,10 +359,10 @@ class Sudoku(tk.Frame):
         self._canvas.delete('all')
         for r in range(self.SIZE):
             for c in range(self.SIZE):
-                x1 = c * self.CELL_SIZE + 1
-                y1 = r * self.CELL_SIZE + 1
-                x2 = x1 + self.CELL_SIZE - 2
-                y2 = y1 + self.CELL_SIZE - 2
+                x1 = c * self.cell_size + 1
+                y1 = r * self.cell_size + 1
+                x2 = x1 + self.cell_size - 2
+                y2 = y1 + self.cell_size - 2
 
                 # 背景
                 if self._selected == (r, c):
@@ -385,19 +388,19 @@ class Sudoku(tk.Frame):
 
         # 粗边框 (3x3 宫)
         for i in range(4):
-            x = i * 3 * self.CELL_SIZE
-            self._canvas.create_line(x, 0, x, self.GRID_SIZE,
+            x = i * 3 * self.cell_size
+            self._canvas.create_line(x, 0, x, self.grid_size,
                                      fill='#888', width=2)
-            y = i * 3 * self.CELL_SIZE
-            self._canvas.create_line(0, y, self.GRID_SIZE, y,
+            y = i * 3 * self.cell_size
+            self._canvas.create_line(0, y, self.grid_size, y,
                                      fill='#888', width=2)
 
     def _draw_win_overlay(self):
         """胜利时显示覆盖层"""
         self._canvas.create_rectangle(
-            0, 0, self.GRID_SIZE, self.GRID_SIZE,
+            0, 0, self.grid_size, self.grid_size,
             fill='#1a3a1a', stipple='gray25', outline='')
         self._canvas.create_text(
-            self.GRID_SIZE // 2, self.GRID_SIZE // 2,
+            self.grid_size // 2, self.grid_size // 2,
             text='🎉 恭喜通关! 🎉',
             fill='#4caf50', font=('Segoe UI', 28, 'bold'))

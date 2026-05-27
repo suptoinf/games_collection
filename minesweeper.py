@@ -22,9 +22,10 @@ class Minesweeper(tk.Frame):
     MINES = 10
     CELL_SIZE = 42
 
-    def __init__(self, parent, back_callback=None):
+    def __init__(self, parent, back_callback=None, scale=1.0):
         super().__init__(parent, bg='#1a1a1a')
         self._back_callback = back_callback
+        self._scale = scale
         self._board: list[list[int]] = []
         self._revealed: list[list[bool]] = []
         self._flagged: list[list[bool]] = []
@@ -68,8 +69,9 @@ class Minesweeper(tk.Frame):
         reset_btn.pack(side=tk.RIGHT)
 
         # 画布
-        cw = self.COLS * self.CELL_SIZE
-        ch = self.ROWS * self.CELL_SIZE
+        self.cell_size = int(self.cell_size * self._scale)
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
         self._canvas = tk.Canvas(self, width=cw, height=ch,
                                  bg='#2a2a2a', highlightthickness=0)
         self._canvas.pack(pady=(4, 10))
@@ -170,8 +172,8 @@ class Minesweeper(tk.Frame):
         if self._game_over:
             return
 
-        c = event.x // self.CELL_SIZE
-        r = event.y // self.CELL_SIZE
+        c = event.x // self.cell_size
+        r = event.y // self.cell_size
         if not (0 <= r < self.ROWS and 0 <= c < self.COLS):
             return
         if self._flagged[r][c]:
@@ -187,8 +189,8 @@ class Minesweeper(tk.Frame):
         if self._game_over:
             return
 
-        c = event.x // self.CELL_SIZE
-        r = event.y // self.CELL_SIZE
+        c = event.x // self.cell_size
+        r = event.y // self.cell_size
         if not (0 <= r < self.ROWS and 0 <= c < self.COLS):
             return
         if self._revealed[r][c]:
@@ -206,10 +208,10 @@ class Minesweeper(tk.Frame):
         self._canvas.delete('all')
         for r in range(self.ROWS):
             for c in range(self.COLS):
-                x1 = c * self.CELL_SIZE + 1
-                y1 = r * self.CELL_SIZE + 1
-                x2 = x1 + self.CELL_SIZE - 2
-                y2 = y1 + self.CELL_SIZE - 2
+                x1 = c * self.cell_size + 1
+                y1 = r * self.cell_size + 1
+                x2 = x1 + self.cell_size - 2
+                y2 = y1 + self.cell_size - 2
 
                 if self._revealed[r][c]:
                     val = self._board[r][c]
