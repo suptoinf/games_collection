@@ -249,7 +249,7 @@ class Minesweeper(tk.Frame):
 
     def _draw(self):
         self._canvas.delete('all')
-        fs = max(8, min(18, self.cell_size // 2))  # 自适应字体
+        fs = max(8, min(14, self.cell_size // 2))  # 自适应字体
         for r in range(self.rows):
             for c in range(self.cols):
                 x1 = c * self.cell_size + 1
