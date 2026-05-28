@@ -13,14 +13,19 @@ _NUMBER_COLORS = {
 }
 
 
+# 难度配置
+_DIFFICULTIES = {
+    '简单':  {'rows': 9,  'cols': 9,  'mines': 10, 'label': '简单'},
+    '中等':  {'rows': 16, 'cols': 16, 'mines': 40, 'label': '中等'},
+    '困难':  {'rows': 16, 'cols': 30, 'mines': 99, 'label': '困难'},
+}
+_DIFF_NAMES = ['简单', '中等', '困难']
+
+
 class Minesweeper(tk.Frame):
     """扫雷游戏"""
 
-    # ── 配置 ──
-    ROWS = 9
-    COLS = 9
-    MINES = 10
-    CELL_SIZE = 42
+    CELL_SIZE = 42  # 基准格子大小
 
     def __init__(self, parent, back_callback=None, scale=1.0):
         super().__init__(parent, bg='#1a1a1a')
@@ -33,14 +38,15 @@ class Minesweeper(tk.Frame):
         self._first_click = True
         self._flag_count = 0
         self._mines_placed = False
+        self._difficulty = '简单'
 
         self._setup_ui()
-        self._reset()
+        self._set_difficulty('简单')
 
     # ── UI 构建 ──
 
     def _setup_ui(self):
-        # 顶栏：返回 + 雷计数 + 状态表情 + 重置按钮
+        # 顶栏：返回 + 难度 + 雷计数 + 状态表情 + 重置按钮
         header = tk.Frame(self, bg='#1a1a1a')
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
 
@@ -52,10 +58,21 @@ class Minesweeper(tk.Frame):
                                  command=self._back_callback)
             back_btn.pack(side=tk.LEFT, padx=(0, 8))
 
+        # 难度按钮
+        btn_s = {'bg': '#3a3a3a', 'fg': 'white', 'relief': tk.FLAT,
+                 'font': ('Segoe UI', 9), 'padx': 6, 'pady': 1,
+                 'cursor': 'hand2', 'activebackground': '#4a4a4a'}
+        self._diff_btns: dict[str, tk.Button] = {}
+        for diff in _DIFF_NAMES:
+            btn = tk.Button(header, text=diff, **btn_s,
+                            command=lambda d=diff: self._set_difficulty(d))
+            btn.pack(side=tk.LEFT, padx=1)
+            self._diff_btns[diff] = btn
+
         self._mine_label = tk.Label(header, text='💣 10',
                                     fg='#e0e0e0', bg='#1a1a1a',
                                     font=('Segoe UI', 14, 'bold'))
-        self._mine_label.pack(side=tk.LEFT)
+        self._mine_label.pack(side=tk.LEFT, padx=(6, 0))
 
         self._face_label = tk.Label(header, text='🙂',
                                     fg='#e0e0e0', bg='#1a1a1a',
@@ -68,11 +85,8 @@ class Minesweeper(tk.Frame):
                               command=self._reset)
         reset_btn.pack(side=tk.RIGHT)
 
-        # 画布
-        self.cell_size = int(type(self).CELL_SIZE * self._scale)
-        cw = self.COLS * self.cell_size
-        ch = self.ROWS * self.cell_size
-        self._canvas = tk.Canvas(self, width=cw, height=ch,
+        # 画布（尺寸由 _set_difficulty 动态设置）
+        self._canvas = tk.Canvas(self, width=100, height=100,
                                  bg='#2a2a2a', highlightthickness=0)
         self._canvas.pack(pady=(4, 10))
 
@@ -80,18 +94,47 @@ class Minesweeper(tk.Frame):
         self._canvas.bind('<Button-2>', self._on_right_click)  # macOS
         self._canvas.bind('<Button-3>', self._on_right_click)  # Windows
 
+    # ── 难度切换 ──
+
+    def _set_difficulty(self, diff: str):
+        """切换难度（重新创建画布并开始新对局）"""
+        self._difficulty = diff
+        cfg = _DIFFICULTIES[diff]
+        self.rows = cfg['rows']
+        self.cols = cfg['cols']
+        self.mines = cfg['mines']
+
+        # 计算合适格子大小
+        scale = self._scale
+        max_w = 380 * scale
+        max_h = 440 * scale
+        cell_w = int(max_w / self.cols)
+        cell_h = int(max_h / self.rows)
+        self.cell_size = max(14, min(cell_w, cell_h))
+
+        # 更新画布尺寸
+        cw = self.cols * self.cell_size
+        ch = self.rows * self.cell_size
+        self._canvas.config(width=cw, height=ch)
+
+        # 高亮当前难度
+        for name, btn in self._diff_btns.items():
+            btn.config(bg='#5a7a5a' if name == diff else '#3a3a3a')
+
+        self._reset()
+
     # ── 游戏逻辑 ──
 
     def _reset(self):
         """重置游戏"""
-        self._board = [[0] * self.COLS for _ in range(self.ROWS)]
-        self._revealed = [[False] * self.COLS for _ in range(self.ROWS)]
-        self._flagged = [[False] * self.COLS for _ in range(self.ROWS)]
+        self._board = [[0] * self.cols for _ in range(self.rows)]
+        self._revealed = [[False] * self.cols for _ in range(self.rows)]
+        self._flagged = [[False] * self.cols for _ in range(self.rows)]
         self._game_over = False
         self._first_click = True
         self._mines_placed = False
         self._flag_count = 0
-        self._mine_label.config(text=f'💣 {self.MINES}')
+        self._mine_label.config(text=f'💣 {self.mines}')
         self._face_label.config(text='🙂')
         self._draw()
 
@@ -99,26 +142,26 @@ class Minesweeper(tk.Frame):
         """布雷（避开首次点击位置及其 3×3 邻域）"""
         safe = {(safe_r + dr, safe_c + dc)
                 for dr in (-1, 0, 1) for dc in (-1, 0, 1)
-                if 0 <= safe_r + dr < self.ROWS and 0 <= safe_c + dc < self.COLS}
+                if 0 <= safe_r + dr < self.rows and 0 <= safe_c + dc < self.cols}
 
-        positions = [(r, c) for r in range(self.ROWS) for c in range(self.COLS)
+        positions = [(r, c) for r in range(self.rows) for c in range(self.cols)
                      if (r, c) not in safe]
         random.shuffle(positions)
 
-        for i in range(min(self.MINES, len(positions))):
+        for i in range(min(self.mines, len(positions))):
             r, c = positions[i]
             self._board[r][c] = -1  # -1 = 雷
 
         # 计算数字
-        for r in range(self.ROWS):
-            for c in range(self.COLS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 if self._board[r][c] == -1:
                     continue
                 cnt = 0
                 for dr in (-1, 0, 1):
                     for dc in (-1, 0, 1):
                         nr, nc = r + dr, c + dc
-                        if 0 <= nr < self.ROWS and 0 <= nc < self.COLS and self._board[nr][nc] == -1:
+                        if 0 <= nr < self.rows and 0 <= nc < self.cols and self._board[nr][nc] == -1:
                             cnt += 1
                 self._board[r][c] = cnt
 
@@ -126,7 +169,7 @@ class Minesweeper(tk.Frame):
 
     def _reveal(self, r: int, c: int):
         """递归翻开格子"""
-        if not (0 <= r < self.ROWS and 0 <= c < self.COLS):
+        if not (0 <= r < self.rows and 0 <= c < self.cols):
             return
         if self._revealed[r][c] or self._flagged[r][c]:
             return
@@ -152,15 +195,15 @@ class Minesweeper(tk.Frame):
 
     def _reveal_all_mines(self):
         """失败时翻开所有地雷"""
-        for r in range(self.ROWS):
-            for c in range(self.COLS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 if self._board[r][c] == -1:
                     self._revealed[r][c] = True
 
     def _check_win(self):
         """检查是否胜利"""
-        for r in range(self.ROWS):
-            for c in range(self.COLS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 if self._board[r][c] != -1 and not self._revealed[r][c]:
                     return
         self._game_over = True
@@ -174,7 +217,7 @@ class Minesweeper(tk.Frame):
 
         c = event.x // self.cell_size
         r = event.y // self.cell_size
-        if not (0 <= r < self.ROWS and 0 <= c < self.COLS):
+        if not (0 <= r < self.rows and 0 <= c < self.cols):
             return
         if self._flagged[r][c]:
             return
@@ -191,14 +234,14 @@ class Minesweeper(tk.Frame):
 
         c = event.x // self.cell_size
         r = event.y // self.cell_size
-        if not (0 <= r < self.ROWS and 0 <= c < self.COLS):
+        if not (0 <= r < self.rows and 0 <= c < self.cols):
             return
         if self._revealed[r][c]:
             return
 
         self._flagged[r][c] = not self._flagged[r][c]
         self._flag_count += 1 if self._flagged[r][c] else -1
-        remaining = self.MINES - self._flag_count
+        remaining = self.mines - self._flag_count
         self._mine_label.config(text=f'💣 {max(remaining, 0)}')
         self._draw()
 
@@ -206,8 +249,9 @@ class Minesweeper(tk.Frame):
 
     def _draw(self):
         self._canvas.delete('all')
-        for r in range(self.ROWS):
-            for c in range(self.COLS):
+        fs = max(8, min(18, self.cell_size // 2))  # 自适应字体
+        for r in range(self.rows):
+            for c in range(self.cols):
                 x1 = c * self.cell_size + 1
                 y1 = r * self.cell_size + 1
                 x2 = x1 + self.cell_size - 2
@@ -221,7 +265,7 @@ class Minesweeper(tk.Frame):
                             x1, y1, x2, y2, fill='#ff6b6b', outline='#555', width=1)
                         self._canvas.create_text(
                             (x1 + x2) // 2, (y1 + y2) // 2,
-                            text='💣', font=('Segoe UI', 16))
+                            text='💣', font=('Segoe UI', fs))
                     else:
                         fill = '#d4d4d4'
                         self._canvas.create_rectangle(
@@ -231,13 +275,13 @@ class Minesweeper(tk.Frame):
                                 (x1 + x2) // 2, (y1 + y2) // 2,
                                 text=str(val),
                                 fill=_NUMBER_COLORS.get(val, 'black'),
-                                font=('Segoe UI', 14, 'bold'))
+                                font=('Segoe UI', fs, 'bold'))
                 elif self._flagged[r][c]:
                     self._canvas.create_rectangle(
                         x1, y1, x2, y2, fill='#4a4a4a', outline='#444', width=1)
                     self._canvas.create_text(
                         (x1 + x2) // 2, (y1 + y2) // 2,
-                        text='🚩', font=('Segoe UI', 16))
+                        text='🚩', font=('Segoe UI', fs))
                 else:
                     # 未翻开
                     self._canvas.create_rectangle(
