@@ -34,6 +34,8 @@ class Snake(tk.Frame):
         self._direction = 'Right'
         self._next_dir = 'Right'
         self._running = False
+        self._paused = False
+        self._countdown = 0
         self._score = 0
         self._high_score = 0
         self._tick_id: Optional[str] = None
@@ -103,6 +105,8 @@ class Snake(tk.Frame):
         self._next_dir = 'Right'
         self._score = 0
         self._running = True
+        self._paused = False
+        self._countdown = 0
         self._score_label.config(text='0')
         self._spawn_food()
         self._draw()
@@ -120,7 +124,7 @@ class Snake(tk.Frame):
 
     def _tick(self):
         """游戏循环帧"""
-        if not self._running:
+        if not self._running or self._paused:
             return
 
         self._direction = self._next_dir
@@ -162,6 +166,8 @@ class Snake(tk.Frame):
     def _game_over(self, reason: str):
         """游戏结束"""
         self._running = False
+        self._paused = False
+        self._countdown = 0
         if self._tick_id:
             self.after_cancel(self._tick_id)
             self._tick_id = None
@@ -195,6 +201,63 @@ class Snake(tk.Frame):
         elif event.keysym == 'space':
             if not self._running:
                 self._new_game()
+            elif self._paused:
+                # 暂停中按空格 → 倒计时恢复
+                self._countdown = 3
+                self._draw_countdown()
+                self._do_countdown_step()
+            else:
+                # 运行中按空格 → 暂停
+                self._paused = True
+                self._draw_pause()
+
+    # ── 暂停/倒计时 ──
+
+    def _do_countdown_step(self):
+        """倒计时的每一秒"""
+        self._countdown -= 1
+        if self._countdown <= 0:
+            # 倒计时结束 → 恢复运行
+            self._paused = False
+            self._draw()
+            self._tick()
+        else:
+            self._draw_countdown()
+            self.after(1000, self._do_countdown_step)
+
+    def _draw_pause(self):
+        """显示暂停覆盖层"""
+        self._draw()
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
+        self._canvas.create_rectangle(0, 0, cw, ch,
+                                       fill='#0a0a1a', stipple='gray25',
+                                       outline='')
+        self._canvas.create_text(cw // 2, ch // 2 - 16,
+                                  text='⏸ 暂停',
+                                  fill='#ffd740',
+                                  font=('Segoe UI', 22, 'bold'))
+        self._canvas.create_text(cw // 2, ch // 2 + 14,
+                                  text='按 空格键 继续',
+                                  fill='#aaa',
+                                  font=('Segoe UI', 11))
+
+    def _draw_countdown(self):
+        """显示倒计时数字"""
+        self._draw()
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
+        self._canvas.create_rectangle(0, 0, cw, ch,
+                                       fill='#0a1a0a', stipple='gray25',
+                                       outline='')
+        self._canvas.create_text(cw // 2, ch // 2 - 10,
+                                  text=str(self._countdown),
+                                  fill='#69f0ae',
+                                  font=('Segoe UI', 48, 'bold'))
+        self._canvas.create_text(cw // 2, ch // 2 + 30,
+                                  text='准备...',
+                                  fill='#aaa',
+                                  font=('Segoe UI', 11))
 
     # ── 绘制 ──
 
