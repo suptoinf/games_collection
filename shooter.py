@@ -147,8 +147,8 @@ class Shooter(tk.Frame):
         hw = self.PLAYER_W / 2
         self._player_x = max(hw, min(self.W - hw, self._player_x))
 
-        # 射击（空格按住连续射击，每 6 帧一发）
-        if ('space' in self._keys_down or 'Up' in self._keys_down) and self._frame % 6 == 0:
+        # 自动射击（每 8 帧一发）
+        if self._frame % 8 == 0:
             self._bullets.append({
                 'x': self._player_x,
                 'y': self.H - self.PLAYER_H / 2 - 6,
@@ -163,9 +163,10 @@ class Shooter(tk.Frame):
         if self._frame % max(15, int(self.SPAWN_INTERVAL - self._frame * 0.003)) == 0:
             self._spawn_enemy()
 
-        # 敌人移动
+        # 敌人移动（速度随帧数逐渐增加）
+        speed_bonus = 1.0 + self._frame * 0.002
         for e in self._enemies:
-            e['y'] += e['speed']
+            e['y'] += e['speed'] * speed_bonus
 
         # 碰撞检测：子弹 vs 敌人
         hit_any = False
@@ -230,12 +231,62 @@ class Shooter(tk.Frame):
                                   fill='#e0e0e0',
                                   font=('Segoe UI', 12))
 
+    # ── 暂停/倒计时 ──
+
+    def _do_countdown_step(self):
+        self._countdown -= 1
+        if self._countdown <= 0:
+            self._paused = False
+            self._draw()
+        else:
+            self._draw_countdown()
+            self.after(1000, self._do_countdown_step)
+
+    def _draw_pause(self):
+        self._draw()
+        cw = int(self.W * self._scale)
+        ch = int(self.H * self._scale)
+        self._canvas.create_rectangle(0, 0, cw, ch,
+                                       fill='#0a0a1a', stipple='gray25',
+                                       outline='')
+        self._canvas.create_text(cw // 2, ch // 2 - 16,
+                                  text='⏸ 暂停', fill='#ffd740',
+                                  font=('Segoe UI', 22, 'bold'))
+        self._canvas.create_text(cw // 2, ch // 2 + 14,
+                                  text='按 空格键 继续', fill='#aaa',
+                                  font=('Segoe UI', 11))
+
+    def _draw_countdown(self):
+        self._draw()
+        cw = int(self.W * self._scale)
+        ch = int(self.H * self._scale)
+        self._canvas.create_rectangle(0, 0, cw, ch,
+                                       fill='#0a1a0a', stipple='gray25',
+                                       outline='')
+        self._canvas.create_text(cw // 2, ch // 2 - 10,
+                                  text=str(self._countdown),
+                                  fill='#69f0ae',
+                                  font=('Segoe UI', 48, 'bold'))
+        self._canvas.create_text(cw // 2, ch // 2 + 30,
+                                  text='准备...', fill='#aaa',
+                                  font=('Segoe UI', 11))
+
     # ── 事件 ──
 
     def _on_key_down(self, event):
         self._keys_down.add(event.keysym)
-        if event.keysym == 'space' and not self._running:
-            self._new_game()
+        if event.keysym == 'space':
+            if not self._running:
+                self._new_game()
+            elif self._paused:
+                # 暂停中按空格 → 倒计时恢复
+                self._countdown = 3
+                self._draw_countdown()
+                self._do_countdown_step()
+            else:
+                # 运行中按空格 → 暂停
+                self._paused = True
+                self._draw_pause()
 
     def _on_key_up(self, event):
         self._keys_down.discard(event.keysym)
