@@ -64,11 +64,13 @@ class GameCollection:
         from minesweeper import Minesweeper
         from sudoku import Sudoku
         from snake import Snake
+        from shooter import Shooter
         # (emoji, 中文名, class)
         self._game_classes: dict[str, tuple[str, str, type]] = {
             'minesweeper': ('💣', '扫雷', Minesweeper),
             'sudoku': ('🧩', '数独', Sudoku),
             'snake': ('🐍', '贪吃蛇', Snake),
+            'shooter': ('✈', '打飞机', Shooter),
         }
         self._current_game: str | None = None
 
