@@ -11,7 +11,7 @@ from typing import Optional
 class Shooter(tk.Frame):
     """打飞机游戏"""
 
-    W = 500
+    W = 380
     H = 400
     TICK_MS = 30      # 毫秒/帧（约 33 fps）
     PLAYER_W = 36
