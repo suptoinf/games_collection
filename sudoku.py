@@ -175,12 +175,20 @@ class Sudoku(tk.Frame):
 
         solution = copy.deepcopy(grid)
 
-        # 根据难度挖空
-        remove = _REMOVE_COUNT[difficulty]
+        # 根据难度挖空（逐格检查，确保唯一解）
+        target = _REMOVE_COUNT[difficulty]
         positions = [(r, c) for r in range(self.SIZE) for c in range(self.SIZE)]
         random.shuffle(positions)
-        for r, c in positions[:remove]:
+        removed = 0
+        for r, c in positions:
+            if removed >= target:
+                break
+            val = grid[r][c]
             grid[r][c] = 0
+            if self._count_solutions(copy.deepcopy(grid), 2) == 1:
+                removed += 1
+            else:
+                grid[r][c] = val  # 多解 → 恢复
 
         return grid, solution
 
@@ -315,6 +323,25 @@ class Sudoku(tk.Frame):
         self._draw_win_overlay()
 
     # ── 求解器（用于生成提示/解） ──
+
+    def _count_solutions(self, board, limit=2):
+        """数解个数（达到 limit 即停止）"""
+        def _count(board, cnt):
+            if cnt >= limit:
+                return cnt
+            empty = self._find_empty(board)
+            if not empty:
+                return cnt + 1
+            r, c = empty
+            for num in range(1, 10):
+                if self._is_valid(board, r, c, num):
+                    board[r][c] = num
+                    cnt = _count(board, cnt)
+                    board[r][c] = 0
+                    if cnt >= limit:
+                        return cnt
+            return cnt
+        return _count(board, 0)
 
     def _solve(self, board) -> Optional[list[list[int]]]:
         """简单回溯求解器"""
