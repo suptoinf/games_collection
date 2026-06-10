@@ -14,7 +14,6 @@ a = Analysis(
         'minesweeper',
         'sudoku',
         'snake',
-        'shooter',
     ],
     hookspath=[],
     hooksconfig={},
