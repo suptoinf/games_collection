@@ -180,7 +180,12 @@ class GameCollection:
             w.destroy()
 
         _, _, cls = self._game_classes[name]
-        instance = cls(self._content, back_callback=self._show_menu, scale=getattr(self, "_dpi_scale", 1.0))
+        self.root.update_idletasks()
+        avail_w = max(200, self._content.winfo_width() - 20)
+        avail_h = max(200, self._content.winfo_height() - 10)
+        instance = cls(self._content, back_callback=self._show_menu,
+                       scale=getattr(self, "_dpi_scale", 1.0),
+                       avail_w=avail_w, avail_h=avail_h)
         instance.pack(fill=tk.BOTH, expand=True)
         self._current_game = name
 

@@ -24,11 +24,13 @@ class Snake(tk.Frame):
     CELL_SIZE = 20
     TICK_MS = 180  # 毫秒/帧
 
-    def __init__(self, parent, back_callback=None, scale=1.0):
+    def __init__(self, parent, back_callback=None, scale=1.0, avail_w=0, avail_h=0):
         super().__init__(parent, bg='#1a1a1a')
 
         self._back_callback = back_callback
         self._scale = scale
+        self._avail_w = avail_w
+        self._avail_h = avail_h
         self._snake: list[tuple[int, int]] = []   # 蛇身 [(r,c), ...]
         self._food: Optional[tuple[int, int]] = None
         self._direction = 'Right'
@@ -42,8 +44,6 @@ class Snake(tk.Frame):
 
         self._setup_ui()
         self._new_game()
-        # 窗口映射后尺寸才准确，延迟重算
-        self.after(400, self._resize_canvas)
 
     # ── UI ──
 
@@ -80,11 +80,15 @@ class Snake(tk.Frame):
                                       command=self._new_game)
         self._restart_btn.pack(side=tk.RIGHT, padx=4)
 
-        # 画布（尺寸根据窗口实际可用空间计算）
-        self.update_idletasks()
+        # 画布（优先用主窗口传入的尺寸）
         scale = self._scale
-        avail_w = max(200, self.winfo_width() - 20)
-        avail_h = max(200, self.winfo_height() - 60)
+        if self._avail_w > 0:
+            avail_w = self._avail_w
+            avail_h = self._avail_h
+        else:
+            self.update_idletasks()
+            avail_w = max(200, self.winfo_width() - 20)
+            avail_h = max(200, self.winfo_height() - 60)
         logical_w = avail_w / scale
         logical_h = avail_h / scale
         cell_w = int(logical_w / self.COLS)
@@ -220,24 +224,6 @@ class Snake(tk.Frame):
                 # 运行中按空格 → 暂停
                 self._paused = True
                 self._draw_pause()
-
-    # ── 自适应窗口 ──
-
-    def _resize_canvas(self):
-        """根据窗口实际尺寸重新计算画布"""
-        self.update_idletasks()
-        scale = self._scale
-        avail_w = max(200, self.winfo_width() - 20)
-        avail_h = max(200, self.winfo_height() - 60)
-        logical_w = avail_w / scale
-        logical_h = avail_h / scale
-        cell_w = int(logical_w / self.COLS)
-        cell_h = int(logical_h / self.ROWS)
-        self.cell_size = max(10, min(cell_w, cell_h))
-        cw = self.COLS * self.cell_size
-        ch = self.ROWS * self.cell_size
-        self._canvas.config(width=cw, height=ch)
-        self._draw()
 
     # ── 暂停/倒计时 ──
 

@@ -27,10 +27,12 @@ class Minesweeper(tk.Frame):
 
     CELL_SIZE = 42  # 基准格子大小
 
-    def __init__(self, parent, back_callback=None, scale=1.0):
+    def __init__(self, parent, back_callback=None, scale=1.0, avail_w=0, avail_h=0):
         super().__init__(parent, bg='#1a1a1a')
         self._back_callback = back_callback
         self._scale = scale
+        self._avail_w = avail_w
+        self._avail_h = avail_h
         self._board: list[list[int]] = []
         self._revealed: list[list[bool]] = []
         self._flagged: list[list[bool]] = []
@@ -42,8 +44,6 @@ class Minesweeper(tk.Frame):
 
         self._setup_ui()
         self._set_difficulty('简单')
-        # 窗口映射后尺寸才准确，延迟重算
-        self.after(400, lambda: self._set_difficulty(self._difficulty))
 
     # ── UI 构建 ──
 
@@ -106,11 +106,15 @@ class Minesweeper(tk.Frame):
         self.cols = cfg['cols']
         self.mines = cfg['mines']
 
-        # 根据窗口实际可用空间计算格子大小
-        self.update_idletasks()
+        # 优先用主窗口传入的尺寸，否则从自身获取
         scale = self._scale
-        avail_w = max(200, self.winfo_width() - 20)
-        avail_h = max(200, self.winfo_height() - 80)
+        if self._avail_w > 0:
+            avail_w = self._avail_w
+            avail_h = self._avail_h
+        else:
+            self.update_idletasks()
+            avail_w = max(200, self.winfo_width() - 20)
+            avail_h = max(200, self.winfo_height() - 80)
         logical_w = avail_w / scale
         logical_h = avail_h / scale
         cell_w = int(logical_w / self.cols)
