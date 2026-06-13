@@ -34,7 +34,7 @@ class Sudoku(tk.Frame):
     FONT = ('Segoe UI', 18, 'bold')
     FONT_SMALL = ('Segoe UI', 10)
 
-    def __init__(self, parent, back_callback=None, scale=1.0):
+    def __init__(self, parent, back_callback=None, scale=1.0, avail_w=0, avail_h=0):
         super().__init__(parent, bg='#1a1a1a')
 
         self._back_callback = back_callback
