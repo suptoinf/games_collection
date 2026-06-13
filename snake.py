@@ -219,6 +219,24 @@ class Snake(tk.Frame):
                 self._paused = True
                 self._draw_pause()
 
+    # ── 自适应窗口 ──
+
+    def _resize_canvas(self):
+        """根据窗口实际尺寸重新计算画布"""
+        self.update_idletasks()
+        scale = self._scale
+        avail_w = max(200, self.winfo_width() - 20)
+        avail_h = max(200, self.winfo_height() - 60)
+        logical_w = avail_w / scale
+        logical_h = avail_h / scale
+        cell_w = int(logical_w / self.COLS)
+        cell_h = int(logical_h / self.ROWS)
+        self.cell_size = max(10, min(cell_w, cell_h))
+        cw = self.COLS * self.cell_size
+        ch = self.ROWS * self.cell_size
+        self._canvas.config(width=cw, height=ch)
+        self._draw()
+
     # ── 暂停/倒计时 ──
 
     def _do_countdown_step(self):
