@@ -42,6 +42,8 @@ class Minesweeper(tk.Frame):
 
         self._setup_ui()
         self._set_difficulty('简单')
+        # 窗口映射后尺寸才准确，延迟重算
+        self.after(400, lambda: self._set_difficulty(self._difficulty))
 
     # ── UI 构建 ──
 
