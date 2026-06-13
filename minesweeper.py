@@ -104,12 +104,15 @@ class Minesweeper(tk.Frame):
         self.cols = cfg['cols']
         self.mines = cfg['mines']
 
-        # 计算合适格子大小
+        # 根据窗口实际可用空间计算格子大小
+        self.update_idletasks()
         scale = self._scale
-        max_w = 380 * scale
-        max_h = 440 * scale
-        cell_w = int(max_w / self.cols)
-        cell_h = int(max_h / self.rows)
+        avail_w = max(200, self.winfo_width() - 20)
+        avail_h = max(200, self.winfo_height() - 80)
+        logical_w = avail_w / scale
+        logical_h = avail_h / scale
+        cell_w = int(logical_w / self.cols)
+        cell_h = int(logical_h / self.rows)
         self.cell_size = max(14, min(cell_w, cell_h))
 
         # 更新画布尺寸

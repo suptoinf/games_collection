@@ -78,8 +78,16 @@ class Snake(tk.Frame):
                                       command=self._new_game)
         self._restart_btn.pack(side=tk.RIGHT, padx=4)
 
-        # 画布
-        self.cell_size = int(type(self).CELL_SIZE * self._scale)
+        # 画布（尺寸根据窗口实际可用空间计算）
+        self.update_idletasks()
+        scale = self._scale
+        avail_w = max(200, self.winfo_width() - 20)
+        avail_h = max(200, self.winfo_height() - 60)
+        logical_w = avail_w / scale
+        logical_h = avail_h / scale
+        cell_w = int(logical_w / self.COLS)
+        cell_h = int(logical_h / self.ROWS)
+        self.cell_size = max(10, min(cell_w, cell_h))
         cw = self.COLS * self.cell_size
         ch = self.ROWS * self.cell_size
         self._canvas = tk.Canvas(self, width=cw, height=ch,
