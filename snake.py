@@ -42,6 +42,8 @@ class Snake(tk.Frame):
 
         self._setup_ui()
         self._new_game()
+        # 窗口映射后尺寸才准确，延迟重算
+        self.after(400, self._resize_canvas)
 
     # ── UI ──
 
